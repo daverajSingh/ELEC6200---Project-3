@@ -12,4 +12,3 @@ Completed as a part of MEng Computer Science with Artificial Intelligence, MEng 
 
 ## Results Showcase
 
-## Areas for further improvement
