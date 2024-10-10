@@ -8,3 +8,8 @@
 
 Completed as a part of MEng Computer Science with Artificial Intelligence, MEng Electronics and Electrical Engineering, & MEng Aerospace Electronic Engineering
 
+## Project Specification
+
+## Results Showcase
+
+## Areas for further improvement
