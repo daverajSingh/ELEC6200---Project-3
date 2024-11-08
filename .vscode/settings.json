@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./detectron2/build/lib.linux-x86_64-cpython-38"
+    ]
+}
