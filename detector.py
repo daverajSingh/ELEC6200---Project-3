@@ -1,8 +1,5 @@
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
-from detectron2.data import MetadataCatalog
-from detectron2.utils.visualizer import Visualizer
-from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2 import model_zoo
 
 import os
@@ -23,36 +20,6 @@ class Detector:
         
         self.predictor = DefaultPredictor(self.cfg)
 
-    def onImage(self, imagePath):
-        image = cv2.imread(imagePath)
-        image = cv2.resize(image, None, fx = 0.1, fy = 0.1)
-        imageName = imagePath.split('/')[-1].split('.')[0]
-        
-        predictions = self.predictor(image)
-                
-        panoptic_seg, segments_info = predictions["panoptic_seg"]
-                
-        panoptic_mask = panoptic_seg.to("cpu").numpy()
-        
-        print(panoptic_mask, segments_info)
-        
-        unique_values = np.unique(panoptic_mask)
-        colors = ['black'] + list(plt.cm.tab20.colors[:len(unique_values) - 1])
-        cmap = ListedColormap(colors)
-                
-        plt.imshow(panoptic_mask, cmap)
-        plt.grid(False)
-        plt.axis('off')
-        plt.savefig(imageName+'ClassifiedPLT.jpg', dpi=1000)
-
-        viz = Visualizer(image[:,:,::-1], metadata=MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0]))        
-        output = viz.draw_panoptic_seg(panoptic_seg.to("cpu"), segments_info)
-        
-        cv2.imshow("segment", output.get_image())
-        cv2.waitKey(0)
-        cv2.imwrite(imageName+'Classified.jpg', output.get_image())
-        cv2.destroyAllWindows()
-        
     
     def classifyFrames(self, folderPath):
         for frame in os.listdir(folderPath):
