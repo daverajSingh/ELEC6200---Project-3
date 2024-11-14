@@ -2,4 +2,8 @@ from detector import *
 
 detector = Detector()
 
-detector.onImage("images/modern-living-rooms-wb-1-bc45b0dc70e541f0ba40364ae6bd8421.jpg")
+# detector.onImage("images/IMG_2443.jpg")
+# detector.onImage("images/IMG_2444.jpg")
+# detector.onImage("images/IMG_2445.jpg")
+
+detector.classifyFrames("images/")
