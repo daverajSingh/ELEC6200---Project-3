@@ -1,6 +1,7 @@
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 from detectron2 import model_zoo
+from detectron2.data import MetadataCatalog
 
 import os
 import cv2
@@ -22,18 +23,35 @@ class Detector:
 
     
     def classifyFrames(self, folderPath):
+        
+        def createCmap(self, segments_info):
+            metadata = MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0])            
+            colors = [[0,0,0]]
+            for object in segments_info:
+                idx = object.get('category_id')
+                if object.get('isthing') :
+                    colors = colors + [metadata.get("thing_colors")[idx]]
+                else:
+                    colors = colors + [metadata.get("stuff_colors")[idx]]
+            colors = np.array(colors)
+            return ListedColormap(colors/255, name="custom") # Creates Custom cmap for plt based of metadatacatalog colours.
+        
+        def cropImage(image):
+            temp = np.where(image != [255,255,255]) 
+            x1, x2, y1, y2 = temp[1].min(), temp[1].max(), temp[0].min(), temp[0].max()
+            image = image[y1:y2,x1:x2] #Removes White Border that MatPlotLib puts on images
+            return image
+        
         for frame in os.listdir(folderPath):
             image = cv2.imread(os.path.join(folderPath,frame)) # Reads Frames from Folder
             
             predictions = self.predictor(image)
-            panoptic_seg, _ = predictions["panoptic_seg"]
+            panoptic_seg, segments_info = predictions["panoptic_seg"]
             panoptic_mask = panoptic_seg.to("cpu").numpy()#Produces Segmented Mask From Predictor
             
-            unique_values = np.unique(panoptic_mask)
-            colors = ['black'] + list(plt.cm.tab20.colors[:len(unique_values) - 1])
-            cmap = ListedColormap(colors) # Colour Map for all objects in scene
-               
-            fig, ax = plt.subplots(dpi=1000)     
+            cmap = createCmap(self, segments_info)
+            
+            fig, ax = plt.subplots(dpi=1200)     
             ax.imshow(panoptic_mask, cmap)
             ax.grid(False)
             ax.axis('off') #Produce Segmented Image
@@ -44,8 +62,8 @@ class Detector:
             panoptic_segmented_image = cv2.cvtColor(panoptic_segmented_image, cv2.COLOR_BGR2RGB)
             plt.close(fig)#Image to array
             
-            temp = np.where(panoptic_segmented_image != [255,255,255]) 
-            x1, x2, y1, y2 = temp[1].min(), temp[1].max(), temp[0].min(), temp[0].max()
-            panoptic_segmented_image = panoptic_segmented_image[y1:y2,x1:x2] #Removes White Border that MatPlotLib puts on images
+            panoptic_segmented_image = cropImage(panoptic_segmented_image)
             
-            cv2.imwrite(frame.split('.')[0]+'SEG.jpg', panoptic_segmented_image)#Saves images, path can be changed
+            print(f'Image {frame} segmented')
+            cv2.imwrite('results/'+frame.split('.')[0]+'SEG.jpg', panoptic_segmented_image)#Saves images, path can be changed
+       
