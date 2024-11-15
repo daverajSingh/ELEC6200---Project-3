@@ -11,6 +11,10 @@ from matplotlib.colors import ListedColormap
 
 class Detector:
     def __init__(self):
+        """
+        Creates Detector Object that is used for object segmentation
+        """
+        
         self.cfg = get_cfg()
         
         self.cfg.merge_from_file(model_zoo.get_config_file("COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml"))
@@ -20,11 +24,25 @@ class Detector:
         self.cfg.MODEL.DEVICE = "cpu"
         
         self.predictor = DefaultPredictor(self.cfg)
-
     
     def classifyFrames(self, folderPath):
+        """
+        Classifies each frame in a given directory and outputs a segmented image
         
+        Parameters:
+        - folderPath: Directory where frames are located
+        
+        """
         def createCmap(self, segments_info):
+            """
+
+            Args:
+                segments_info: Information on all of the segments in the picture, given by the predictor
+
+            Returns:
+                ListedColorMap: cmap that can be used by matplotlib
+            """
+            
             metadata = MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0])            
             colors = [[0,0,0]]
             for object in segments_info:
@@ -37,6 +55,13 @@ class Detector:
             return ListedColormap(colors/255, name="custom") # Creates Custom cmap for plt based of metadatacatalog colours.
         
         def cropImage(image):
+            """
+            Parameters:
+            - image: Input image with white border to be cropped
+
+            Returns:
+            - image: Cropped image
+            """
             temp = np.where(image != [255,255,255]) 
             x1, x2, y1, y2 = temp[1].min(), temp[1].max(), temp[0].min(), temp[0].max()
             image = image[y1:y2,x1:x2] #Removes White Border that MatPlotLib puts on images
