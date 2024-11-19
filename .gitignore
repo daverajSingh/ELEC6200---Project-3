@@ -1,0 +1,7 @@
+*.mov
+*.mp4
+*.MOV
+/Result*
+/Video*
+/detectron2
+/images
