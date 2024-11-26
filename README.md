@@ -2,6 +2,6 @@ The code projects equirectangular images to cubemap images and it only saves fro
 
 Cubemap orientation is as such:
 
-      [TOP]
-[LEFT][FRONT][RIGHT][BACK]
-      [BOTTOM]
+            [TOP]
+      [LEFT][FRONT][RIGHT][BACK]
+            [BOTTOM]
