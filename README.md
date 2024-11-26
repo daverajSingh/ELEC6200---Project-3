@@ -1,14 +1,6 @@
-# ELEC6200---Project-3
+** The code projects equirectangular images to cubemap images and it only saves front and back (cubemap_frontnback.py) or left and right (cubemap_leftnright.py) **
 
-**Project Title: 3D scene reconstruction and rendering using a 360⁰ camera and a LiDAR sensor**
-
-**Supervisor**: Hansung Kim, University of Southampton 
-
-**Customer**: Hwasup Kim, Center for Artificial Intelligence, Korea Institute of Science and Technology (KIST), South Korea
-
-Completed as a part of MEng Computer Science with Artificial Intelligence, MEng Electronics and Electrical Engineering, & MEng Aerospace Electronic Engineering
-
-## Project Specification
-
-## Results Showcase
-
+** Cubemap orientation is as such: **
+      [TOP]
+[LEFT][FRONT][RIGHT][BACK]
+      [BOTTOM]
