@@ -1,0 +1,5 @@
+mkdir build
+cd build
+cmake ..
+make
+./pointcloud_to_mesh [name of pointcloud].pcd
