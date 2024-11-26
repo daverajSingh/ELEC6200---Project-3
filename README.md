@@ -7,3 +7,6 @@ Cubemap orientation is as such:
             [TOP]
       [LEFT][FRONT][RIGHT][BACK]
             [BOTTOM]
+
+Run code with command line: 
+`python cubemap_frontnback.py -i \path\to\equirectangular\images -o \path\to\output\folder`
