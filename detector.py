@@ -74,9 +74,7 @@ class Detector:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
                 
-        for frame in os.listdir(folderPath):
-            frameNumber = 1
-            numberOfFrames = [f for f in os.listdir(folderPath) if f.endswith('.jpg') or f.endswith('.png')].__len__()
+        for frame in sorted([f for f in os.listdir(folderPath) if f.endswith('.jpg') or f.endswith('.png')]):
             image = cv2.imread(os.path.join(folderPath, frame))  # Reads Frames from Folder
 
             # Get predictions
