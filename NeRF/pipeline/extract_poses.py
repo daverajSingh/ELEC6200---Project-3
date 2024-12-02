@@ -66,7 +66,8 @@ def run_colmap(db_path, images_path, text_path, colmap_camera_model="SIMPLE_PINH
 	if os.path.exists(db):
 		os.remove(db)
 
-	do_system(f"{colmap_binary} feature_extractor --ImageReader.camera_model {colmap_camera_model} --ImageReader.camera_params \"{colmap_camera_params}\" --SiftExtraction.estimate_affine_shape=true --SiftExtraction.domain_size_pooling=true --ImageReader.single_camera 1 --database_path {db} --image_path {images}")
+	# do_system(f"{colmap_binary} feature_extractor --ImageReader.camera_model {colmap_camera_model} --ImageReader.camera_params \"{colmap_camera_params}\" --SiftExtraction.estimate_affine_shape=true --SiftExtraction.domain_size_pooling=true --ImageReader.single_camera 1 --database_path {db} --image_path {images}")
+	do_system(f"{colmap_binary} feature_extractor --ImageReader.camera_model {colmap_camera_model} --ImageReader.camera_params \"{colmap_camera_params}\" --ImageReader.single_camera 1 --database_path {db} --image_path {images}")
 	match_cmd = f"{colmap_binary} {colmap_matcher}_matcher --SiftMatching.guided_matching=true --database_path {db}"
 	do_system(match_cmd)
 	try:
@@ -135,14 +136,14 @@ def closest_point_2_lines(oa, da, ob, db): # returns point closest to both rays 
 	return (oa+ta*da+ob+tb*db) * 0.5, denom
 
 
-def main(db_path, img_path, text_path, output_path, aabb_scale):
+def main(db_path, img_path, text_path, output_path, aabb_scale,colmap_camera_model = "SIMPLE_PINHOLE", colmap_matcher="sequential"):
 	AABB_SCALE = int(aabb_scale)
 	IMAGE_FOLDER = img_path
 	TEXT_FOLDER = text_path
 	OUT_PATH = output_path
 
 	#  colmap_camera_model, colmap_matcher,
-	run_colmap(db_path, img_path, text_path)
+	run_colmap(db_path, img_path, text_path, colmap_camera_model=colmap_camera_model, colmap_matcher=colmap_matcher)
 
 	# Check that we can save the output before we do a lot of work
 	try:

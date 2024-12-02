@@ -1,4 +1,5 @@
 import math
+# from Queue import Queue
 import queue
 import time
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ import threading
 from pynput import mouse
 import instant_nerf as nerf
 import logging
+from tqdm import tqdm
 
 """
 Custom NeRF visualiser made by Shree Kandekar
@@ -24,11 +26,11 @@ class InputController:
     mouse_listener_thread = None
 
     def __init__(self):
-        if self.mouse_listener_thread is None:
+        if InputController.mouse_listener_thread is None:
             # Start the mouse listener in a separate thread
-            self.mouse_listener_thread = threading.Thread(target=self.__start_mouse_listener)
-            self.mouse_listener_thread.daemon = True  # Ensures thread will close with the main program
-            self.mouse_listener_thread.start()
+            InputController.mouse_listener_thread = threading.Thread(target=self.__start_mouse_listener)
+            InputController.mouse_listener_thread.daemon = True  # Ensures thread will close with the main program
+            InputController.mouse_listener_thread.start()
 
     @classmethod
     def __on_move(cls, x, y):
@@ -57,17 +59,20 @@ class InputController:
             listener.join()
 
     @classmethod
-    def stop_mouse_listener(cls):
-        cls.listener.stop()
-
-
+    def stop_mouse_listener(cls, event):
+        sys.exit(0)
+        return False
 
 class Visualiser:
 
     camera_pose_ax = None
     nerf_ax = None
+    seg_ax = None
     sensitivity = 50 # Lower is more sensitive
-    image_queue = queue.Queue(maxsize=1) # Images to be rendered (should have max 1)
+    image_queue = queue.Queue() # Images to be rendered (should have max 1)
+    N = 16 # Number of divisions when rendering nerf
+    H = 200
+    W = 200
 
     original_pose = None
 
@@ -75,15 +80,18 @@ class Visualiser:
     cancel_prev_render = threading.Event()
     cancel_prev_render.clear()
 
-    def __init__(self, initial_pose, model_name):
+    def __init__(self, initial_pose, model_name, num_of_labels):
         plt.ion()  # Turn on interactive mode
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10, 7))
+        fig.canvas.mpl_connect('close_event', InputController.stop_mouse_listener)
 
-        Visualiser.camera_pose_ax = fig.add_subplot(121, projection='3d')
-        Visualiser.nerf_ax = fig.add_subplot(122)
+        Visualiser.camera_pose_ax = fig.add_subplot(131, projection='3d')
+        Visualiser.nerf_ax = fig.add_subplot(132)
+        Visualiser.seg_ax = fig.add_subplot(133)
+        Visualiser.pbar = tqdm(total=Visualiser.N, desc="Processing")
 
         Visualiser.original_pose = initial_pose
-        Visualiser.model = nerf.load_model(model_name)
+        Visualiser.model = nerf.load_model(model_name, num_of_labels)
         # Disable interactive rotation
         Visualiser.camera_pose_ax.disable_mouse_rotation()
         Visualiser.render_loop()
@@ -144,6 +152,8 @@ class Visualiser:
         """
 
         origin = R[:, 3]
+
+        cls.camera_pose_ax.scatter([0], [0], [0], marker='o')
 
         for i, (c, label) in enumerate(zip(['r', 'g', 'b'], ['Right', 'Up', 'Forward'])):
             cls.camera_pose_ax.quiver(origin[0], origin[1], origin[2],
@@ -207,8 +217,8 @@ class Visualiser:
         Renders NeRF image
         """
         if not cls.image_queue.empty():
-            latest_img = cls.image_queue.get_nowait()
-            cls.nerf_ax.imshow(latest_img)
+            latest_img, ax = cls.image_queue.get()
+            ax.imshow(latest_img)
 
     @classmethod
     def create_nerf_renderer(cls, pose):
@@ -216,18 +226,20 @@ class Visualiser:
         Creates a generator for nerf output
         """
         return nerf.get_output_for_img_iter(cls.model, hn=nerf.HN, hf=nerf.HF, nb_bins=nerf.NB_BINS, 
-                                            testpose=torch.from_numpy(pose).float(), H=240, W=240, focal=1657, 
-                                            batch_size=nerf.batch_size, flag=cls.cancel_prev_render)
+                                            testpose=torch.from_numpy(pose).float(), H=cls.H, W=cls.W, focal=1657, N=cls.N,
+                                            batch_size=nerf.batch_size, flag=cls.cancel_prev_render, pbar=cls.pbar)
     
     @classmethod
     def run_nerf_renderer(cls, renderer):
         """
         Runs generator
         """
-        for img in renderer:
-            if not cls.image_queue.empty():
-                cls.image_queue.get_nowait()  # Remove previous image if exists
-            cls.image_queue.put(img)
+        for img, seg_img in renderer:
+            # if not cls.image_queue.empty():
+            #     cls.image_queue.get_nowait()  # Remove previous image if exists
+            cls.image_queue.put((img, cls.nerf_ax))
+            if seg_img is not None:
+                cls.image_queue.put((seg_img, cls.seg_ax))
 
     @classmethod
     def render_loop(cls):
@@ -268,9 +280,9 @@ class Visualiser:
 loaded = np.load("nerf_formated_data.npz")
 poses = torch.from_numpy(loaded['poses_train'])
 
-model = 'model_state_dict_18.pth'
+model = 'model_state_dict_15.pth'
 
 logging.basicConfig(level=logging.INFO)
 
 InputController()
-Visualiser(poses[0], model)
+Visualiser(poses[0], model, num_of_labels=4)
