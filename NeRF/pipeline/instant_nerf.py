@@ -20,6 +20,17 @@ def load_data(path):
     
     return images, poses, focal, H, W, testimg, testpose
 
+def scale_images(images, scale_factor=2):
+    n = images.shape[0]
+    h = images.shape[1] // scale_factor
+    w = images.shape[2] // scale_factor
+    
+    # Average pooling by reshaping and taking mean
+    if len(images.shape) == 4:  # With channels
+        return images.reshape(n, h, scale_factor, w, scale_factor, -1).mean(axis=(2, 4))
+    else:  # No channels
+        return images.reshape(n, h, scale_factor, w, scale_factor).mean(axis=(2, 4))
+
 @torch.no_grad()
 def get_output_for_img_iter(nerf_model, hn, hf, nb_bins, testpose, H, W, focal, batch_size, N = 16, flag=None, pbar=None):
     rays_o, rays_d = get_rays(H, W, focal, testpose)
@@ -272,10 +283,11 @@ def train(nerf_model, optimizer, data_loader, testimg, test_img_seg, testpose, d
     psnrs = []
     iternums = []
     t = time.time()
-    
+    print("Starting training")    
     for epoch in range(nb_epochs):
         losses = []
         i = 0
+        cur_time = time.time()
         for batch in tqdm(data_loader):
             ray_origins = batch[:, :3].to(device)
             ray_directions = batch[:, 3:6].to(device)
@@ -294,7 +306,8 @@ def train(nerf_model, optimizer, data_loader, testimg, test_img_seg, testpose, d
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            # i += 1
+            #print(i, time.time() - t)
+            i += 1
             # if i > 10:
             #     break
 
@@ -340,6 +353,7 @@ def train(nerf_model, optimizer, data_loader, testimg, test_img_seg, testpose, d
 
                 plt.tight_layout(pad=3.0, w_pad=2.0, h_pad=2.0)
                 plt.savefig(os.path.join(PLOT_PATH, f'loss_plot_{epoch}.png'), bbox_inches='tight', dpi=300)
+                # torch.save(nerf_model.module.state_dict(), os.path.join(MODEL_PATH, f'model_state_dict_{epoch}.pth'))
                 torch.save(nerf_model.state_dict(), os.path.join(MODEL_PATH, f'model_state_dict_{epoch}.pth'))
                 plt.close()
 
@@ -358,22 +372,24 @@ def get_output(nerf_model, pose, H, W, focal):
     return img, seg
 
 def main(data_path):
+    SCALE_FACTOR = 2
+
     loaded = np.load(data_path)
-    images = torch.from_numpy(loaded['images_train'])[:2]
-    seg_images = torch.from_numpy(loaded['seg_images'])[:2]
-    poses = torch.from_numpy(loaded['poses_train'])[:2]
+    images = torch.from_numpy(scale_images(loaded['images_train'], scale_factor=SCALE_FACTOR))[1::2]
+    seg_images = torch.from_numpy(scale_images(loaded['seg_images'], scale_factor=SCALE_FACTOR))[1::2]
+    poses = torch.from_numpy(loaded['poses_train'])[1::2]
 
-    W = loaded['W'].item()
-    H = loaded['H'].item()
+    W = loaded['W'].item() // SCALE_FACTOR
+    H = loaded['H'].item() // SCALE_FACTOR
     focal = loaded['focal'].item()
-
+    print("Running nerf, number of training images: ", len(images))
     training_data = []
     for img, seg_img, pose in zip(images, seg_images, poses):
         rays_o, rays_d = get_rays(H, W, focal, pose)
         training_data.append(torch.cat([rays_o.reshape(-1, 3), rays_d.reshape(-1, 3), img.reshape(-1, 3), seg_img.reshape(-1, 1)], dim=1))
 
     training_dataset = torch.cat(training_data, dim=0)
-    testimg, test_img_seg, testpose = images[1], seg_images[1], poses[1]
+    testimg, test_img_seg, testpose = images[0], seg_images[0], poses[0]
 
     PLOT_PATH = 'plots'
     os.makedirs(PLOT_PATH, exist_ok=True)
@@ -382,11 +398,22 @@ def main(data_path):
 
 
     model = NGP(T, Nl, 4, device, 16, num_of_labels=4)
-    model_optimizer = torch.optim.Adam(
-        [{"params": model.lookup_tables.parameters(), "lr": 1e-2, "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 0.},
-         {"params": model.density_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
-         {"params": model.color_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
-         {"params": model.seg_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6}])
+    if torch.cuda.device_count() > 1:
+        print("Using multiple GPUS: ", torch.cuda.device_count())
+        model = nn.DataParallel(model)
+        model.to(device)
+        model_optimizer = torch.optim.Adam(
+            [{"params": model.module.lookup_tables.parameters(), "lr": 1e-2, "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 0.},
+            {"params": model.module.density_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
+            {"params": model.module.color_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
+            {"params": model.module.seg_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6}])
+    else:
+        model.to(device)
+        model_optimizer = torch.optim.Adam(
+            [{"params": model.lookup_tables.parameters(), "lr": 1e-2, "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 0.},
+            {"params": model.density_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
+            {"params": model.color_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6},
+            {"params": model.seg_MLP.parameters(), "lr": 1e-2,  "betas": (0.9, 0.99), "eps": 1e-15, "weight_decay": 10**-6}])
     data_loader = DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
     train(model, model_optimizer, data_loader, testimg, test_img_seg, testpose, nb_epochs=100, device=device,
           hn=HN, hf=HF, nb_bins=NB_BINS, H=H, W=W, focal=focal, batch_size=batch_size)
