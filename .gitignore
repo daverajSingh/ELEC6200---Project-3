@@ -2,6 +2,7 @@
 *.mp4
 *.MOV
 /Result*
+/result*
 /Video*
 /detectron2
-/images
+/images*

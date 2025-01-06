@@ -5,6 +5,8 @@ def convert_to_equirectangular(input_video, output_folder, fps, quality):
     """
     Extracts Frames from 360 Video to Equirectangular Images
     
+    MUST HAVE FFMPEG INSTALLED FOR THIS TO WORK
+    
     Parameters:
     - input_video: Path to the input video file
     - output_folder: Directory where frames will be saved
@@ -17,7 +19,7 @@ def convert_to_equirectangular(input_video, output_folder, fps, quality):
         "-i", input_video,
         "-vf", f"fps={fps}",
         "-qscale:v", str(quality),
-        output_folder, "/image_%04d.jpg"
+        output_folder+"/image_%04d.jpg"
     ]      
     
     os.makedirs(output_folder, exist_ok=True)
