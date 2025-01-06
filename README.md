@@ -1,14 +1,12 @@
-# ELEC6200---Project-3
+This code is best used when taking a 360 video in a small space where the person taking the video is in frame of the video, which is also why that specific frame should be discarded.
 
-**Project Title: 3D scene reconstruction and rendering using a 360⁰ camera and a LiDAR sensor**
+The code projects equirectangular images to cubemap images and it only saves front and back (cubemap_frontnback.py) or left and right (cubemap_leftnright.py).
 
-**Supervisor**: Hansung Kim, University of Southampton 
+Cubemap orientation is as such:
 
-**Customer**: Hwasup Kim, Center for Artificial Intelligence, Korea Institute of Science and Technology (KIST), South Korea
+            [TOP]
+      [LEFT][FRONT][RIGHT][BACK]
+            [BOTTOM]
 
-Completed as a part of MEng Computer Science with Artificial Intelligence, MEng Electronics and Electrical Engineering, & MEng Aerospace Electronic Engineering
-
-## Project Specification
-
-## Results Showcase
-
+Run code with command line: 
+`python cubemap_frontnback.py -i \path\to\equirectangular\images -o \path\to\output\folder`
