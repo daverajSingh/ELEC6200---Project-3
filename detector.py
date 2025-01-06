@@ -32,41 +32,8 @@ class Detector:
         
         Parameters:
         - folderPath: Directory where frames are located
-        
+        - outputPath: Directory for segmented frames
         """
-        def createCmap(self, segments_info):
-            """
-
-            Args:
-                segments_info: Information on all of the segments in the picture, given by the predictor
-
-            Returns:
-                ListedColorMap: cmap that can be used by matplotlib
-            """
-            
-            metadata = MetadataCatalog.get(self.cfg.DATASETS.TRAIN[0])            
-            colors = [[0,0,0]]
-            for object in segments_info:
-                idx = object.get('category_id')
-                if object.get('isthing') :
-                    colors = colors + [metadata.get("thing_colors")[idx]]
-                else:
-                    colors = colors + [metadata.get("stuff_colors")[idx]]
-            colors = np.array(colors)
-            return ListedColormap(colors/255, name="custom") # Creates Custom cmap for plt based of metadatacatalog colours.
-        
-        def cropImage(image):
-            """
-            Parameters:
-            - image: Input image with white border to be cropped
-
-            Returns:
-            - image: Cropped image
-            """
-            temp = np.where(image != [255,255,255]) 
-            x1, x2, y1, y2 = temp[1].min(), temp[1].max(), temp[0].min(), temp[0].max()
-            image = image[y1:y2,x1:x2] #Removes White Border that MatPlotLib puts on images
-            return image
         
         os.makedirs(outputPath, exist_ok=True)
         for filename in os.listdir(outputPath):
