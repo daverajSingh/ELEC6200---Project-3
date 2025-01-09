@@ -1,0 +1,3 @@
+[submodule "3dgs"]
+	path = 3dgs
+	url = https://github.com/jonstephens85/gaussian-splatting-Windows.git
