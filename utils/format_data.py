@@ -1,7 +1,7 @@
 import os
 import json
 import numpy as np
-import extract_labels
+import utils.extract_labels as extract_labels
 from PIL import Image
 # from sklearn.model_selection import train_test_split
 
@@ -40,7 +40,9 @@ def load_data(image_folder_path, seg_image_folder_path, pose_json_path, test_siz
     with open(pose_json_path, 'r') as f:
         poses_list = json.load(f)["frames"]
     
-    global_label_mapping = extract_labels.create_global_label_mapping(seg_image_folder_path)
+    print("test 1")
+    # global_label_mapping = extract_labels.create_global_label_mapping(seg_image_folder_path)
+    global_label_mapping = {(0, 0, 0): 0, (231, 226, 220): 1, (29, 107, 153): 2}
     print(f"Number of labels: {len(global_label_mapping)}", global_label_mapping)
 
     # Load images
@@ -52,8 +54,10 @@ def load_data(image_folder_path, seg_image_folder_path, pose_json_path, test_siz
     H = None
     for img_file in image_files:
         if img_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+            print(img_file)
             img_path = os.path.join(image_folder_path, img_file)
-            seg_path = os.path.join(seg_image_folder_path, img_file)
+            name, ext = os.path.splitext(img_file)
+            seg_path = os.path.join(seg_image_folder_path, f"{name}SEG{ext}")
             try:
                 # Load and convert image to numpy array
                 img = Image.open(img_path)
@@ -61,7 +65,7 @@ def load_data(image_folder_path, seg_image_folder_path, pose_json_path, test_siz
                 img_array = np.array(img, dtype=np.float32) / 255.0
                 H, W, _ = img_array.shape
                 # Get corresponding pose (assuming filename matches pose key)
-                img_key = img_file
+                img_key = f"{name[1:]}{ext}"
                 pose_dict = find_pose_key(img_key, poses_list)
 
                 if pose_dict is not None:
@@ -74,6 +78,7 @@ def load_data(image_folder_path, seg_image_folder_path, pose_json_path, test_siz
             except Exception as e:
                 print(f"Error loading image {img_file}: {e}")
     
+    print("test")
     images = np.array(images, dtype=np.float32)
     poses = np.array(valid_poses, dtype=np.float32)
     seg_images = np.array(seg_images, dtype=np.float32)

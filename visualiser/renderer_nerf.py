@@ -10,11 +10,13 @@ class Visualiser:
     camera_pose_ax = None
     nerf_ax = None
     seg_ax = None
-    sensitivity = 50 # Lower is more sensitive
+    sensitivity = 5 # Lower is more sensitive
     image_queue = queue.Queue() # Images to be rendered (should have max 1)
     N = 16 # Number of divisions when rendering nerf
     H = 224
     W = 224
+    # H = 1080 // 5
+    # W = 1980 // 5
 
     num_of_labels = 4
 
@@ -73,7 +75,7 @@ class Visualiser:
                 for i in range(5):  # Iterate over the 5 possible classes
                     rgb_array[img == i] = color_map[i]
                 
-                Visualiser.latest_seg = rgb_array
+                Visualiser.latest_seg = np.flip(rgb_array, 1)
     
                 # cmap = plt.get_cmap('viridis')  # You can choose different colormaps like 'viridis', 'plasma', etc.
                 # # normalized_array = (img - np.min(img)) / (np.max(img) - np.min(img))  # Normalize to [0, 1]

@@ -120,14 +120,7 @@ class Camera:
                             np.cos(self.pitch)])
             front = self._global_rot_mat() @ front.reshape(3, 1)
             front = front[:, 0]
-            # self.position[:] = -front * np.linalg.norm(self.position - self.target) + self.target
-
-            # self.position[:] = np.array([np.cos(self.yaw) * np.linalg.norm(self.position - self.target), np.sin(self.yaw) * np.linalg.norm(self.position - self.target), self.position[2]])
-            if (self.up == np.array([0, -1, 0])).all():
-                self.position[:] = np.array([np.sin(self.yaw) * np.linalg.norm(self.position - self.target), self.position[1], np.cos(self.yaw) * np.linalg.norm(self.position - self.target)])
-                # self.position[:] = np.array([self.position[0], self.position[1], self.position[2]])
-            else:
-                self.position[:] = np.array([np.sin(self.yaw) * np.linalg.norm(self.position - self.target), np.cos(self.yaw) * np.linalg.norm(self.position - self.target), self.position[2]])
+            self.position[:] = -front * np.linalg.norm(self.position - self.target) + self.target
             
             self.is_pose_dirty = True
         
@@ -463,11 +456,10 @@ class SimpleImageRenderer:
     def setup_quad(self):
         # Quad vertices: positions and texture coordinates
         vertices = np.array([
-            # Positions   # Texture Coords
-            -1.0, -1.0,   0.0, 0.0,  # Bottom-left
-             1.0, -1.0,   1.0, 0.0,  # Bottom-right
-            -1.0,  1.0,   0.0, 1.0,  # Top-left
-             1.0,  1.0,   1.0, 1.0,  # Top-right
+            -1.0, -1.0,   1.0, 1.0,  # Bottom-left
+            1.0, -1.0,   0.0, 1.0,  # Bottom-right
+            -1.0,  1.0,   1.0, 0.0,  # Top-left
+            1.0,  1.0,   0.0, 0.0,  # Top-right
         ], dtype=np.float32)
 
         self.vao = gl.glGenVertexArrays(1)

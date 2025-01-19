@@ -62,6 +62,7 @@ def get_camera_pose_from_images_nerf_from_3dgs():
     from utils.extract_poses import main as extract_poses
 
     TRANSFORMS_PATH, TEXT_PATH = set_up_colmap_folders()
+    print(TRANSFORMS_PATH, TEXT_PATH)
 
     print("Extracting camera poses using 3DGS poses using extract_poses.py")
     extract_poses(
@@ -93,7 +94,7 @@ def get_semantic_labels_from_images():
 
 
 def run_3dgs():
-    err = os.system(f"python 3dgs/train.py -s {config.SCENE_PATH} --disable_viewer")
+    err = os.system(f"python 3dgs/train.py -s {config.SCENE_PATH}")
     if err:
         print("FATAL: command failed")
         sys.exit(err)

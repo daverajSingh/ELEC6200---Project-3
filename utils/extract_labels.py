@@ -1,15 +1,29 @@
+import math
 import os
 import numpy as np
 from PIL import Image
+import colorsys
 
-MAX_DISTANCE = 150 # Max distance between colors 
+MAX_DISTANCE = 25 # Max distance between colors 
 
 
 def calc_distance(c1, c2):
-    c1 = np.array(c1, dtype=np.int16)
-    c2 = np.array(c2, dtype=np.int16)
-    # print(c1, c2, np.linalg.norm(c2 - c1, axis=-1), c2 - c1)
-    return np.linalg.norm(c2 - c1, axis=-1)
+    # c1 = np.array(c1, dtype=np.int16)
+    # c2 = np.array(c2, dtype=np.int16)
+    # # print(c1, c2, np.linalg.norm(c2 - c1, axis=-1), c2 - c1)
+    # return np.linalg.norm(c2 - c1, axis=-1)
+    # c1 /= float(256)
+    # c /= float(256)
+    # print(c1)
+    # print(colorsys.rgb_to_hsv(*c1)[0])
+    # print(colorsys.rgb_to_hsv(*c1)[0], colorsys.rgb_to_hsv(*c2)[0])
+    # return abs(colorsys.rgb_to_hsv(*c1)[0] - colorsys.rgb_to_hsv(*c2)[0])
+
+    # c1 = np.array([c1[0], c1[2]], dtype=np.int16)
+    # c2 = np.array([c2[0], c2[2]], dtype=np.int16)
+    # return np.linalg.norm(c2 - c1, axis=-1)
+
+    return abs(int(c1[0]) - int(c2[0]))
 
 def create_global_label_mapping(folder_path):
     """
@@ -23,6 +37,7 @@ def create_global_label_mapping(folder_path):
     """
     # Collect all unique colors across all images
     global_unique_colors = set([(0,0,0)])
+    colors_to_count = {(0,0,0): 0}
     
     for filename in os.listdir(folder_path):
         if filename.endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff')):
@@ -30,27 +45,34 @@ def create_global_label_mapping(folder_path):
             file_path = os.path.join(folder_path, filename)
             
             # Open the image
-            img = Image.open(file_path)
-            
-            # Convert image to numpy array
+            img = Image.open(file_path).convert('HSV')
             img_array = np.array(img)
+            
             
             # Find unique colors and add to global set
             unique_colors = [tuple(color) for color in np.unique(img_array.reshape(-1, img_array.shape[-1]), axis=0)]
 
             for c in unique_colors:
+                if c[2] < 50:
+                    colors_to_count[(0,0,0)] += 1
+                    continue
+
                 already_present = False
                 for c2 in global_unique_colors:
                     if calc_distance(c, c2) <= MAX_DISTANCE:
                         already_present = True
+                        colors_to_count[c2] += 1
                         break
                 if not already_present:
+                    colors_to_count[c] = 1
                     global_unique_colors.add(c)
 
     # Create global label mapping
     global_label_mapping = {(0,0,0): 0}
 
     for label_id, color in enumerate(global_unique_colors - {(0,0,0)}):
+        if colors_to_count[color]/len(os.listdir(folder_path)) < 10:
+            continue
         global_label_mapping[color] = label_id + 1
 
     return global_label_mapping
@@ -61,13 +83,15 @@ def process_image_with_global_mapping(img, global_label_mapping):
     
     # Create label ID array using global mapping
     label_id_array = np.zeros_like(img_array[:,:,0], dtype=int)
+    distances_array = np.full_like(img_array[:, :, 0], np.inf, dtype=float)
     for color, label_id in global_label_mapping.items():
-        # mask = np.all(img_array == color, axis=-1)
-        # label_id_array[mask] = label_id
-
-        diff = img_array - np.array(color, dtype=np.int16)  # Broadcast subtraction
-        distances = np.linalg.norm(diff, axis=-1)  # Compute Euclidean distance
-        label_id_array[distances <= MAX_DISTANCE] = label_id
+        diff = np.abs(img_array - np.array(color, dtype=np.int16))  # Broadcast subtraction
+        # distances = np.linalg.norm(diff, axis=-1)  # Compute Euclidean distance
+        distances = diff[:,:,0]
+        mask = distances < distances_array
+        print(label_id, np.sum(mask))
+        distances_array[mask] = distances[mask]
+        label_id_array[mask] = label_id        
     
     return label_id_array
 
@@ -92,7 +116,7 @@ def process_images_with_global_mapping(folder_path, global_label_mapping):
             file_path = os.path.join(folder_path, filename)
             
             # Open the image
-            img = Image.open(file_path)
+            img = Image.open(file_path).convert('HSV')
             
             # Create label ID array using global mapping
             label_id_array = process_image_with_global_mapping(img, global_label_mapping)
