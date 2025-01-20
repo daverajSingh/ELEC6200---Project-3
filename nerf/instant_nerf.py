@@ -363,7 +363,7 @@ def train(nerf_model, optimizer, data_loader, testimg, test_img_seg, testpose, d
                 plt.close()
 
 def load_model(model_name, num_of_labels):
-    nerf_model = NGP(T, Nl, 4, device, 16, num_of_labels=num_of_labels) # CHANGE AABB TO 16 from 3
+    nerf_model = NGP(T, Nl, 4, device, 16, num_of_labels=num_of_labels) # CHANGE AABB TO REQUIREMENTS
 
     # checkpoint = torch.load(os.path.join(MODEL_PATH, model_name), map_location=torch.device(device))
     checkpoint = torch.load(model_name, map_location=torch.device(device))
@@ -377,7 +377,7 @@ def get_output(nerf_model, pose, H, W, focal):
     return img, seg
 
 def main(data_path):
-    SCALE_FACTOR = 2
+    SCALE_FACTOR = 1
 
     loaded = np.load(data_path)
     images = torch.from_numpy(scale_images(loaded['images_train'], scale_factor=SCALE_FACTOR))[1::2]
@@ -386,6 +386,8 @@ def main(data_path):
     
     W = loaded['W'].item() // SCALE_FACTOR
     H = loaded['H'].item() // SCALE_FACTOR
+
+    # print()
     focal = loaded['focal'].item()
     print("Running nerf, number of training images: ", len(images))
     training_data = []
@@ -402,7 +404,7 @@ def main(data_path):
     os.makedirs(MODEL_PATH, exist_ok=True)
 
 
-    model = NGP(T, Nl, 4, device, 16, num_of_labels=4)
+    model = NGP(T, Nl, 4, device, 8, num_of_labels=4)
     if torch.cuda.device_count() > 1:
         print("Using multiple GPUS: ", torch.cuda.device_count())
         model = nn.DataParallel(model)

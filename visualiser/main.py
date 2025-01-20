@@ -18,10 +18,14 @@ import time
 import ctypes
 from util import SimpleImageRenderer
 import torch
-import instant_nerf as nerf
+
 import threading
 from tqdm import tqdm
+
+sys.path.append('../nerf')
+import instant_nerf as nerf
 from renderer_nerf import Visualiser
+
 
 # Add the directory containing main.py to the Python path
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -33,6 +37,12 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 def setup_cameras():
     g_camera_3dgs = util.Camera(1000, 1000)
     g_camera_nerf = util.Camera(1000, 1000)
+    g_camera_nerf.up = np.array([0.0, 0.0, 1.0]).astype(np.float32)
+    # g_camera_nerf.up = np.array([0.0, -1.0, 0.0]).astype(np.float32)
+    g_camera_nerf.rot_sensitivity = 0.0002
+    g_camera_nerf.trans_sensitivity = 0.001
+    g_camera_nerf.zoom_sensitivity = 0.008
+    g_camera_nerf.roll_sensitivity = 0.003
 
     return g_camera_3dgs, g_camera_nerf
 
@@ -315,7 +325,7 @@ def main():
                     if file_path:
                         try:
                             # Visualiser.load_model(file_path)
-                            Visualiser(file_path, num_of_labels=4, focal=focal)
+                            Visualiser(file_path, num_of_labels=4, focal=253) # Will need to update based on model and dataset
                             update_camera_pose_lazy()
                             g_camera_nerf.is_pose_dirty = True
                         except RuntimeError as e:
@@ -330,9 +340,11 @@ def main():
                     if file_path:
                         try:
                             # Set the camera pos and target pose
+                            loaded_data = np.load(file_path)
+                            Visualiser.focal = loaded_data['focal'].item()
                             loaded_data = torch.from_numpy(np.load(file_path)['poses_train']).numpy()
+                            nerf_ind = 0
                             update_camera_poses(loaded_data[nerf_ind], g_camera_nerf)
-                            update_camera_poses(loaded_data[nerf_ind], g_camera_3dgs)
                             update_camera_pose_lazy()
                         except RuntimeError as e:
                             print(f"Error loading the camera poses: {e}")
@@ -343,7 +355,6 @@ def main():
                 if imgui.button(label='Next'):
                     if loaded_data is not None:
                         update_camera_poses(loaded_data[nerf_ind], g_camera_nerf)
-                        update_camera_poses(loaded_data[nerf_ind], g_camera_3dgs)
                         nerf_ind += 1
                         update_camera_pose_lazy()
                     else:

@@ -43,7 +43,7 @@ def get_cubemap_projection():
             dest_item = os.path.join(os.join(config.IMAGE_PATH, "cubemap"), item)
             shutil.move(source_item, dest_item)
 
-def get_camera_pose_from_images():
+def get_camera_pose_from_images_nerf():
     from utils.extract_poses import main as extract_poses
     TRANSFORMS_PATH, TEXT_PATH = set_up_colmap_folders()
 
@@ -55,11 +55,25 @@ def get_camera_pose_from_images():
         output_path = TRANSFORMS_PATH,
         colmap_camera_model="SIMPLE_RADIAL",
         colmap_matcher="exhaustive",
-        aabb_scale=1
+        aabb_scale=8
+    )
+
+def get_camera_pose_from_images_nerf_from_3dgs():
+    from utils.extract_poses import main as extract_poses
+
+    TRANSFORMS_PATH, TEXT_PATH = set_up_colmap_folders()
+    print(TRANSFORMS_PATH, TEXT_PATH)
+
+    print("Extracting camera poses using 3DGS poses using extract_poses.py")
+    extract_poses(
+        img_path= config.IMAGE_PATH,
+        text_path = TEXT_PATH,
+        output_path = TRANSFORMS_PATH,
+        dgs_path= os.path.join(config.SCENE_PATH, "sparse"),
     )
 
 def get_camera_pose_from_images_3dgs():
-    os.rename(config.COLMAP_OUPUT_PATH, os.join(config.SCENE_PATH, "input"))
+    # os.rename(config.COLMAP_OUPUT_PATH, os.join(config.SCENE_PATH, "input"))
     print("Getting image camera poses using 3dgs convert.py")
 
     err = os.system(f"python 3dgs/convert.py -s {config.SCENE_PATH}")
@@ -67,9 +81,9 @@ def get_camera_pose_from_images_3dgs():
         print("FATAL: command failed")
         sys.exit(err)
 
-    _, TEXT_PATH = set_up_colmap_folders()
-    shutil.copy(os.path.join(config.SCENE_PATH, "distorted/sparse/0/text/cameras.txt") , TEXT_PATH)
-    shutil.copy(os.path.join(config.SCENE_PATH, "distorted/sparse/0/transforms.json") , config.COLMAP_OUPUT_PATH)
+    # _, TEXT_PATH = set_up_colmap_folders()
+    # shutil.copy(os.path.join(config.SCENE_PATH, "distorted/sparse/0/text/cameras.txt") , TEXT_PATH)
+    # shutil.copy(os.path.join(config.SCENE_PATH, "distorted/sparse/0/transforms.json") , config.COLMAP_OUPUT_PATH)
 
 def get_semantic_labels_from_images():
     from segmentation.detector import Detector
@@ -80,7 +94,7 @@ def get_semantic_labels_from_images():
 
 
 def run_3dgs():
-    err = os.system(f"python 3dgs/train.py -s {config.SCENE_PATH} --disable_viewer")
+    err = os.system(f"python 3dgs/train.py -s {config.SCENE_PATH}")
     if err:
         print("FATAL: command failed")
         sys.exit(err)
@@ -122,6 +136,7 @@ def parse_args():
 	parser.add_argument("--get_semantic_labels", action="store_true", help="Extracts semantic outputs from frames")
 	parser.add_argument("--get_camera_pose", action="store_true", help="Runs colmap to extract camera poses from images")
 	parser.add_argument("--run_3dgs", action="store_true", help="Trains 3D gaussian splatting model")
+	parser.add_argument("--same_camera_pose", action="store_true", help="Uses the same camera poses for both 3dgs and NeRF")
 	parser.add_argument("--format_data", action="store_true", help="Formats data to be used by the nerf algorithm")
 	parser.add_argument("--from_video", action="store_true", help="Extracts frames from video")
 	parser.add_argument("--run_nerf", action="store_true", help="Runs fast nerf")
@@ -138,6 +153,10 @@ if __name__=='__main__':
             get_cubemap_projection()
         get_semantic_labels_from_images()
         get_camera_pose_from_images_3dgs()
+        if args.same_camera_pose:
+            get_camera_pose_from_images_nerf_from_3dgs()
+        else:
+            get_camera_pose_from_images_nerf()
         run_3dgs()
         format_data_in_npz_format(extract_from_video=True)
         run_instant_nerf()
@@ -152,7 +171,7 @@ if __name__=='__main__':
         if args.apply_cubemap_projection:
             get_cubemap_projection()
         get_semantic_labels_from_images()
-        get_camera_pose_from_images()
+        get_camera_pose_from_images_nerf()
         format_data_in_npz_format(extract_from_video=True)
         run_instant_nerf()
     else:
@@ -163,7 +182,12 @@ if __name__=='__main__':
         if args.get_semantic_labels:
             get_semantic_labels_from_images()
         if args.get_camera_pose:
-            get_camera_pose_from_images()
+            if args.run_3dgs:
+                get_camera_pose_from_images_3dgs()
+            if args.same_camera_pose:
+                get_camera_pose_from_images_nerf_from_3dgs()
+            else:
+                get_camera_pose_from_images_nerf()
         if args.format_data:
             format_data_in_npz_format(extract_from_video=args.from_video)
         if args.run_nerf:

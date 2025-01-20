@@ -84,6 +84,18 @@ def run_colmap(db_path, images_path, text_path, colmap_camera_model="SIMPLE_PINH
 	do_system(f"mkdir {text}")
 	do_system(f"{colmap_binary} model_converter --input_path {sparse}/0 --output_path {text} --output_type TXT")
 
+
+def colmap_from_3dgs(sparse, text):
+	colmap_binary = "colmap"
+	do_system(f"{colmap_binary} bundle_adjuster --input_path {sparse}/0 --output_path {sparse}/0 --BundleAdjustment.refine_principal_point 1")
+	try:
+		shutil.rmtree(text)
+	except:
+		pass
+	do_system(f"mkdir {text}")
+	do_system(f"{colmap_binary} model_converter --input_path {sparse}/0 --output_path {text} --output_type TXT")
+
+
 def variance_of_laplacian(image):
 	return cv2.Laplacian(image, cv2.CV_64F).var()
 
@@ -136,14 +148,17 @@ def closest_point_2_lines(oa, da, ob, db): # returns point closest to both rays 
 	return (oa+ta*da+ob+tb*db) * 0.5, denom
 
 
-def main(db_path, img_path, text_path, output_path, aabb_scale,colmap_camera_model = "SIMPLE_PINHOLE", colmap_matcher="sequential"):
+def main(db_path=None, img_path=None, text_path=None, output_path=None, aabb_scale=8,colmap_camera_model = "SIMPLE_PINHOLE", colmap_matcher="sequential", dgs_path=None):
 	AABB_SCALE = int(aabb_scale)
 	IMAGE_FOLDER = img_path
 	TEXT_FOLDER = text_path
 	OUT_PATH = output_path
 
 	#  colmap_camera_model, colmap_matcher,
-	run_colmap(db_path, img_path, text_path, colmap_camera_model=colmap_camera_model, colmap_matcher=colmap_matcher)
+	if dgs_path is None:
+		run_colmap(db_path, img_path, text_path, colmap_camera_model=colmap_camera_model, colmap_matcher=colmap_matcher)
+	else:
+		colmap_from_3dgs(dgs_path, text_path)
 
 	# Check that we can save the output before we do a lot of work
 	try:

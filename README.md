@@ -5,13 +5,18 @@ It also contains a custom built visualiser to view outputs of both models simult
 
 ## Set up
 
-To run 3D gaussian splatting please follow setup on the main repo: [gaussian-splatting-Windows](https://github.com/jonstephens85/gaussian-splatting-Windows)
+To run 3D gaussian splatting please follow set up on the main repo: [gaussian-splatting-Windows](https://github.com/jonstephens85/gaussian-splatting-Windows)
 
-Set up a conda enviroment: `conda env create -f environment.yml` \
-Activate enviroment: `conda activate pipeline_env`
+Set up a conda environment: `conda env create -f environment.yml` \
+Activate environment: `conda activate pipeline_env`
 
 
-## Running Pipeline
+## Running The Pipeline
+
+![Pipeline diagram](https://github.com/user-attachments/assets/20d97209-312b-43a3-a91e-af7302198754)*Pipeline diagram*
+
+### Video Demonstration of pipeline
+[![Video Demo](https://img.youtube.com/vi/-2g7QiP8JlI/0.jpg)](https://www.youtube.com/watch?v=-2g7QiP8JlI)
 
 ### Arguments
 
@@ -27,7 +32,7 @@ Activate enviroment: `conda activate pipeline_env`
 `--from_video`: Extracts frames from the video.\
 `--run_nerf`: Runs the fast NeRF algorithm.
 
-Run with additional `--360-video` argument if 360 video is being used.
+Run with an additional `--360-video` argument if 360 video is being used.
 ### Usage
 To run the script with a specific argument, use the following command:
 `python run_pipeline.py [argument]`
@@ -56,5 +61,7 @@ Use the `load camera poses` and navigate to .npz file to open the orignal camera
 
 Bottom Right: NeRF output \
 Bottom Left: 3DGS output \
-Top Right: Nerf Segmentation output \
-Top Left: Segmentation of Guassians
+Top Right: Nerf Segmentation output
+
+![Visualiser](https://github.com/user-attachments/assets/d0a4c24f-dd22-450e-a8c3-155677f427da)
+
